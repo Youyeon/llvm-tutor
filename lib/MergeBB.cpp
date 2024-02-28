@@ -253,7 +253,7 @@ PreservedAnalyses MergeBB::run(llvm::Function &Func,
   }
 
   for (BasicBlock *BB : DeleteList) {
-    DeleteDeadBlock(BB);
+    DeleteDeadBlock(BB); // llvm util
   }
 
   return (Changed ? llvm::PreservedAnalyses::none()
