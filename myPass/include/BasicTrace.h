@@ -27,7 +27,10 @@ struct BasicTrace : public llvm::PassInfoMixin<BasicTrace> {
         explicit BasicTrace(llvm::raw_ostream &OutS) : OS(OutS) {}
 
         std::string getLabel(llvm::BasicBlock* BB);
+        std::vector<std::string> getPredecessors(llvm::BasicBlock* BB);
+        void printPredecessors(llvm::BasicBlock* BB);
 
+        void TracePathBB(llvm::BasicBlock* BB);
         llvm::PreservedAnalyses run(llvm::Function &F, llvm::FunctionAnalysisManager &);
 
         static bool isRequired() { return true; }

@@ -1,6 +1,7 @@
 #include "BasicTrace.h"
 
 #include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/CFG.h"
 #include "llvm/Pass.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
@@ -17,15 +18,44 @@ std::string BasicTrace::getLabel(BasicBlock* BB) {
   return myOS.str();
 }
 
+std::vector<std::string> BasicTrace::getPredecessors(BasicBlock* BB) {
+  std::vector<std::string> Preds;
+  for (BasicBlock *Pred : predecessors(BB)) {
+    Preds.push_back(getLabel(Pred));
+  }
+  return Preds;
+}
+
+void BasicTrace::printPredecessors(BasicBlock* BB) {
+  std::vector<std::string> Preds = getPredecessors(BB);
+  for (std::string str : Preds)
+        errs() << str << ", ";
+      errs() << "\n";
+}
+
+void BasicTrace::TracePathBB(BasicBlock* BB) {
+  if (predecessors(BB).empty())
+    errs() << " | "; // divider of different path
+
+  for (BasicBlock *Pred : predecessors(BB)) {
+    TracePathBB(Pred);
+  }
+  errs() << getLabel(BB) << " ";
+}
+
 PreservedAnalyses BasicTrace::run(llvm::Function &Func,
                                       llvm::FunctionAnalysisManager &) {
-    errs() << "- Start of function [" << Func.getName() << "]\n";
+    errs() << "- Start of Function [" << Func.getName() << "]\n";
     for (auto &BB : Func) {
-      // errs() << "- Start of BasicBlock [" << BB.getName() << "], num of instructions = " << BB.size() << "\n";
-      errs() << "- Start of BasicBlock [" << getLabel(&BB) << "], num of instructions = " << BB.size() << "\n";
-      for (Instruction &I : BB) {
-        errs() << "    - Instruction : " << I << "\n";
-      }
+      errs() << "    - BasicBlock [" << getLabel(&BB) << "], num of instructions = " << BB.size() << "\n";
+      TracePathBB(&BB);
+      errs() << "\n";
+      // errs() << "    - Start of BasicBlock [" << getLabel(&BB) << "], num of instructions = " << BB.size() << "\n";
+      // errs() << "    - Predecessors: "; printPredecessors(&BB);
+
+      // for (Instruction &I : BB) {
+      //   errs() << "        - Instruction : " << I << "\n";
+      // }
     }
 
     return llvm::PreservedAnalyses::all();
