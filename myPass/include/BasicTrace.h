@@ -17,6 +17,8 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include <string>
+#include <vector>
+#include <tuple>
 
 //------------------------------------------------------------------------------
 // New PM interface
@@ -30,7 +32,9 @@ struct BasicTrace : public llvm::PassInfoMixin<BasicTrace> {
         std::vector<std::string> getPredecessors(llvm::BasicBlock* BB);
         void printPredecessors(llvm::BasicBlock* BB);
 
-        void TracePathBB(llvm::BasicBlock* BB);
+        void tracePathBB(llvm::BasicBlock* BB, std::vector<llvm::BasicBlock*>& stack);
+        void getConds(std::vector<llvm::BasicBlock*>& pathBB, std::vector<std::tuple<llvm::BasicBlock*, llvm::Value*, bool>>& conds);
+        void printConds(std::vector<std::tuple<llvm::BasicBlock*, llvm::Value*, bool>>& conds);
         llvm::PreservedAnalyses run(llvm::Function &F, llvm::FunctionAnalysisManager &);
 
         static bool isRequired() { return true; }

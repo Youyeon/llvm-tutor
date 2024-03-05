@@ -1,2 +1,1 @@
-cmake -S . -B build -DLT_LLVM_INSTALL_DIR=/usr/local
-cmake --build build
+/usr/local/bin/opt -load-pass-plugin ./build/lib/libBasicTrace.so -passes=basic-trace -disable-output _tanh.ll

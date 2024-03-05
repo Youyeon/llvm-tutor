@@ -7,6 +7,9 @@
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <vector>
+#include <tuple>
+
 using namespace llvm;
 
 #define DEBUG_TYPE "basic-trace"
@@ -33,26 +36,60 @@ void BasicTrace::printPredecessors(BasicBlock* BB) {
       errs() << "\n";
 }
 
-void BasicTrace::TracePathBB(BasicBlock* BB) {
-  if (predecessors(BB).empty())
-    errs() << " | "; // divider of different path
-
+void BasicTrace::tracePathBB(BasicBlock* BB, std::vector<BasicBlock*>& pathBB) {
   for (BasicBlock *Pred : predecessors(BB)) {
-    TracePathBB(Pred);
+    tracePathBB(Pred, pathBB);
+    pathBB.push_back(Pred);
   }
-  errs() << getLabel(BB) << " ";
+}
+
+void BasicTrace::getConds(std::vector<BasicBlock*>& pathBB, std::vector<std::tuple<BasicBlock*, Value*, bool>>& conds) {
+  std::tuple<BasicBlock*, Value*, bool> condBB;
+
+  for (size_t i=0; i<pathBB.size()-1; i++) {
+    BasicBlock *BB = pathBB[i];
+    auto term = BB->getTerminator();
+
+    if (BranchInst *brInst = dyn_cast<BranchInst>(term)) {
+      if (brInst->isConditional()) { // conditional branch
+          Value* cond = brInst->getOperand(0);
+          BasicBlock *ifTrueBB = brInst->getSuccessor(0); // Get the true branch successor
+          bool ifTrue = (ifTrueBB == pathBB[i+1]); // is BB's condition true?
+          condBB = std::make_tuple(BB, cond, ifTrue);
+        }
+    }
+    conds.push_back(condBB);
+  }
+}
+
+void BasicTrace::printConds(std::vector<std::tuple<BasicBlock*, Value*, bool>>& conds) {
+  for (auto cond : conds) {
+    errs() << "        BB: " << getLabel(get<0>(cond)) << ", condition: " << *get<1>(cond) << ", ifTrue : " << get<2>(cond) << "\n";
+  }
 }
 
 PreservedAnalyses BasicTrace::run(llvm::Function &Func,
                                       llvm::FunctionAnalysisManager &) {
     errs() << "- Start of Function [" << Func.getName() << "]\n";
     for (auto &BB : Func) {
-      errs() << "    - BasicBlock [" << getLabel(&BB) << "], num of instructions = " << BB.size() << "\n";
-      TracePathBB(&BB);
-      errs() << "\n";
-      // errs() << "    - Start of BasicBlock [" << getLabel(&BB) << "], num of instructions = " << BB.size() << "\n";
-      // errs() << "    - Predecessors: "; printPredecessors(&BB);
+      errs() << "    - BasicBlock [" << getLabel(&BB) << "]\n";
 
+      std::vector<BasicBlock*> pathBB; // multiple paths can exist
+      std::vector<std::tuple<BasicBlock*, Value*, bool>> conds; // BasicBlock, condition (llvm::Value), path(true/false)
+      tracePathBB(&BB, pathBB);
+
+      // check cases : multiple path
+      size_t cnt = std::count(pathBB.begin(), pathBB.end(), pathBB[0]);
+      if (cnt == 1) {
+        pathBB.push_back(&BB);
+        getConds(pathBB, conds);
+        printConds(conds);
+      }
+      else {
+        // split a vector into individual cases        
+
+      }
+      
       // for (Instruction &I : BB) {
       //   errs() << "        - Instruction : " << I << "\n";
       // }
