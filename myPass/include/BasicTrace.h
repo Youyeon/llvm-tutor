@@ -33,8 +33,10 @@ struct BasicTrace : public llvm::PassInfoMixin<BasicTrace> {
         void printPredecessors(llvm::BasicBlock* BB);
 
         void tracePathBB(llvm::BasicBlock* BB, std::vector<llvm::BasicBlock*>& stack);
+        void traversePath(llvm::BasicBlock* BB, std::vector<llvm::BasicBlock*>& pathBB);
         void getConds(std::vector<llvm::BasicBlock*>& pathBB, std::vector<std::tuple<llvm::BasicBlock*, llvm::Value*, bool>>& conds);
         void printConds(std::vector<std::tuple<llvm::BasicBlock*, llvm::Value*, bool>>& conds);
+        void splitPathBB(std::vector<llvm::BasicBlock*>& pathBB, std::vector<std::vector<llvm::BasicBlock*>>& _pathBB);
         llvm::PreservedAnalyses run(llvm::Function &F, llvm::FunctionAnalysisManager &);
 
         static bool isRequired() { return true; }
